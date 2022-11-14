@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <cmath>
 
 IDirect3DDevice9* Device = NULL;
 
@@ -27,7 +28,7 @@ const int Height = 768;
 // initialize the position (coordinate) of each ball (ball0 ~ ball3)
 const float spherePos[4][2] = { {-2.7f,0} , {+2.4f,0} , {3.3f,0} , {-2.7f,-0.9f}}; 
 // initialize the color of each ball (ball0 ~ ball3)
-const D3DXCOLOR sphereColor[4] = {d3d::RED, d3d::RED, d3d::YELLOW, d3d::WHITE};
+const D3DXCOLOR sphereColor[4] = {d3d::YELLOW, d3d::YELLOW, d3d::YELLOW, d3d::YELLOW};
 
 // -----------------------------------------------------------------------------
 // Transform matrices
@@ -51,6 +52,13 @@ private :
     float                   m_radius;
 	float					m_velocity_x;
 	float					m_velocity_z;
+	float originDistanceFrom(CSphere& ball) {
+		double xSq = pow((center_x - ball.center_x), 2);
+		double ySq = pow((center_y - ball.center_y), 2);
+		double zSq = pow((center_z - ball.center_z), 2);
+		float originDistance = (float)sqrt(xSq + ySq + zSq);
+		return (float)originDistance;
+	};
 
 public:
     CSphere(void)
@@ -102,13 +110,14 @@ public:
     bool hasIntersected(CSphere& ball) 
 	{
 		// Insert your code here.
-
+		if (originDistanceFrom(ball) <= m_radius) return true;
 		return false;
 	}
 	
 	void hitBy(CSphere& ball) 
 	{ 
 		// Insert your code here.
+
 	}
 
 	void ballUpdate(float timeDiff) 
