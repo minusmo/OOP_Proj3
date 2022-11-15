@@ -26,7 +26,7 @@ const int Height = 768;
 
 // There are four balls
 // initialize the position (coordinate) of each ball (ball0 ~ ball3)
-const float spherePos[4][2] = { {-2.7f,0} , {+2.4f,0} , {3.3f,0} , {-2.7f,-0.9f}}; 
+const float spherePos[4][2] = {{1.7f,3.0f} , {-1.3f,3.0f} , {1.3f,3.0f} , {-1.7f,3.0f}}; 
 // initialize the color of each ball (ball0 ~ ball3)
 const D3DXCOLOR sphereColor[4] = {d3d::YELLOW, d3d::YELLOW, d3d::YELLOW, d3d::YELLOW};
 
@@ -117,7 +117,15 @@ public:
 	void hitBy(CSphere& ball) 
 	{ 
 		// Insert your code here.
-
+		if (hasIntersected(ball)) {
+			// I think that if one of the ball intersected is yellow, then distroy that and save the grey ball.
+			if ((D3DXCOLOR)m_mtrl.Ambient == d3d::YELLOW) {
+				destroy();
+			}
+			else if ((D3DXCOLOR)ball.m_mtrl.Ambient == d3d::YELLOW) {
+				ball.destroy();
+			}
+		}
 	}
 
 	void ballUpdate(float timeDiff) 
@@ -134,14 +142,14 @@ public:
 
 			//correction of position of ball
 			// Please uncomment this part because this correction of ball position is necessary when a ball collides with a wall
-			/*if(tX >= (4.5 - M_RADIUS))
+			if(tX >= (4.5 - M_RADIUS))
 				tX = 4.5 - M_RADIUS;
 			else if(tX <=(-4.5 + M_RADIUS))
 				tX = -4.5 + M_RADIUS;
 			else if(tZ <= (-3 + M_RADIUS))
 				tZ = -3 + M_RADIUS;
 			else if(tZ >= (3 - M_RADIUS))
-				tZ = 3 - M_RADIUS;*/
+				tZ = 3 - M_RADIUS;
 			
 			this->setCenter(tX, cord.y, tZ);
 		}
@@ -154,7 +162,13 @@ public:
 	}
 
 	double getVelocity_X() { return this->m_velocity_x;	}
+	void setVelocity_X(float velocity_x) {
+		m_velocity_x = velocity_x;
+	}
 	double getVelocity_Z() { return this->m_velocity_z; }
+	void setVelocity_Z(float velocity_z) {
+		m_velocity_z = velocity_z;
+	}
 
 	void setPower(double vx, double vz)
 	{
@@ -201,7 +215,22 @@ private:
 	float                   m_width;
     float                   m_depth;
 	float					m_height;
-	
+	bool isWide() {
+		if (m_width > m_depth) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	};
+	bool isTall() {
+		if (m_depth > m_width) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	};
 public:
     CWall(void)
     {
@@ -251,12 +280,39 @@ public:
 	bool hasIntersected(CSphere& ball) 
 	{
 		// Insert your code here.
+		if (isWide()) {
+			float distance = ball.getCenter()[2] - (m_z + m_depth);
+			if (distance <= M_RADIUS) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (isTall()) {
+			float distance = ball.getCenter()[0] - (m_x + m_width);
+			if (distance <= M_RADIUS) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
 		return false;
 	}
 
 	void hitBy(CSphere& ball) 
 	{
 		// Insert your code here.
+		if (hasIntersected(ball)) {
+			// reflect the ball.
+			if (isWide()) {
+				ball.setVelocity_Z(-ball.getVelocity_Z());
+			}
+			else if (isTall()) {
+				ball.setVelocity_X(-ball.getVelocity_X());
+			}
+		}
 	}    
 	
 	void setPosition(float x, float y, float z)
@@ -374,9 +430,12 @@ private:
 CWall	g_legoPlane;
 CWall	g_legowall[4];
 CSphere	g_sphere[4];
-CSphere	g_target_blueball;
+CSphere	g_target_greyball;
+CSphere g_target_redball;
 CLight	g_light;
 
+float initialGreyBallPosZ = - 4.5f + (float)M_RADIUS;
+float initialRedBallPosZ = initialGreyBallPosZ + (float)M_RADIUS;
 double g_camera_pos[3] = {0.0, 5.0, -8.0};
 
 // -----------------------------------------------------------------------------
@@ -398,18 +457,18 @@ bool Setup()
     D3DXMatrixIdentity(&g_mProj);
 		
 	// create plane and set the position
-    if (false == g_legoPlane.create(Device, -1, -1, 9, 0.03f, 6, d3d::GREEN)) return false;
+    if (false == g_legoPlane.create(Device, -1, -1, 6, 0.03f, 9, d3d::GREEN)) return false;
     g_legoPlane.setPosition(0.0f, -0.0006f / 5, 0.0f);
 	
 	// create walls and set the position. note that there are four walls
-	if (false == g_legowall[0].create(Device, -1, -1, 9, 0.3f, 0.12f, d3d::DARKRED)) return false;
-	g_legowall[0].setPosition(0.0f, 0.12f, 3.06f);
-	if (false == g_legowall[1].create(Device, -1, -1, 9, 0.3f, 0.12f, d3d::DARKRED)) return false;
-	g_legowall[1].setPosition(0.0f, 0.12f, -3.06f);
-	if (false == g_legowall[2].create(Device, -1, -1, 0.12f, 0.3f, 6.24f, d3d::DARKRED)) return false;
-	g_legowall[2].setPosition(4.56f, 0.12f, 0.0f);
-	if (false == g_legowall[3].create(Device, -1, -1, 0.12f, 0.3f, 6.24f, d3d::DARKRED)) return false;
-	g_legowall[3].setPosition(-4.56f, 0.12f, 0.0f);
+	if (false == g_legowall[0].create(Device, -1, -1, 6, 0.3f, 0.12f, d3d::DARKRED)) return false;
+	g_legowall[0].setPosition(0.0f, 0.12f, 4.5f);
+	if (false == g_legowall[1].create(Device, -1, -1, 6, 0.0f, 0.0f, d3d::DARKRED)) return false;
+	g_legowall[1].setPosition(0.0f, 0.12f, -4.5f);
+	if (false == g_legowall[2].create(Device, -1, -1, 0.12f, 0.3f, 9.0f, d3d::DARKRED)) return false;
+	g_legowall[2].setPosition(3.00f, 0.12f, 0.0f);
+	if (false == g_legowall[3].create(Device, -1, -1, 0.12f, 0.3f, 9.0f, d3d::DARKRED)) return false;
+	g_legowall[3].setPosition(-3.00f, 0.12f, 0.0f);
 
 	// create four balls and set the position
 	for (i=0;i<4;i++) {
@@ -418,9 +477,13 @@ bool Setup()
 		g_sphere[i].setPower(0,0);
 	}
 	
-	// create blue ball for set direction
-    if (false == g_target_blueball.create(Device, d3d::BLUE)) return false;
-	g_target_blueball.setCenter(.0f, (float)M_RADIUS , .0f);
+	// create red ball for set direction
+	if (false == g_target_redball.create(Device, d3d::RED)) return false;
+	g_target_redball.setCenter(.0f, (float)M_RADIUS, initialRedBallPosZ);
+
+	// create grey ball for set direction
+    if (false == g_target_greyball.create(Device, d3d::GREY)) return false;
+	g_target_greyball.setCenter(.0f, (float)M_RADIUS, initialGreyBallPosZ);
 	
 	// light setting 
     D3DLIGHT9 lit;
@@ -434,7 +497,7 @@ bool Setup()
     lit.Attenuation0 = 0.0f;
     lit.Attenuation1 = 0.9f;
     lit.Attenuation2 = 0.0f;
-    if (false == g_light.create(Device, lit))
+    if (false == g_light.create(Device, lit, (float)0.0))
         return false;
 	
 	// Position and aim the camera.
@@ -502,7 +565,8 @@ bool Display(float timeDelta)
 			g_legowall[i].draw(Device, g_mWorld);
 			g_sphere[i].draw(Device, g_mWorld);
 		}
-		g_target_blueball.draw(Device, g_mWorld);
+		g_target_redball.draw(Device, g_mWorld);
+		g_target_greyball.draw(Device, g_mWorld);
         g_light.draw(Device);
 		
 		Device->EndScene();
@@ -541,7 +605,7 @@ LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 break;
             case VK_SPACE:
 				
-				D3DXVECTOR3 targetpos = g_target_blueball.getCenter();
+				D3DXVECTOR3 targetpos = g_target_greyball.getCenter();
 				D3DXVECTOR3	whitepos = g_sphere[3].getCenter();
 				double theta = acos(sqrt(pow(targetpos.x - whitepos.x, 2)) / sqrt(pow(targetpos.x - whitepos.x, 2) +
 					pow(targetpos.z - whitepos.z, 2)));		// 기본 1 사분면
@@ -597,8 +661,8 @@ LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					dx = (old_x - new_x);// * 0.01f;
 					dy = (old_y - new_y);// * 0.01f;
 		
-					D3DXVECTOR3 coord3d=g_target_blueball.getCenter();
-					g_target_blueball.setCenter(coord3d.x+dx*(-0.007f),coord3d.y,coord3d.z+dy*0.007f );
+					D3DXVECTOR3 coord3d=g_target_greyball.getCenter();
+					g_target_greyball.setCenter(coord3d.x+dx*(-0.007f),coord3d.y,coord3d.z+dy*0.007f );
 				}
 				old_x = new_x;
 				old_y = new_y;
